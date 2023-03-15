@@ -1,6 +1,7 @@
 From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
 From mathcomp Require Import tuple finfun finset path fintype tuple.
-From mathcomp Require Import zify fintype choice eqtype bigop matrix.
+From mathcomp Require Import zify fintype choice eqtype bigop matrix order.
+From pcm Require Import ordtype.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -23,6 +24,8 @@ Lemma nth_slice s n k i :
   k + i < n ->
   (slice s k n)`_i = s`_(k + i).
 Proof. by move=> ?; rewrite /slice nth_drop nth_take. Qed.
+
+Arguments nth_slice {_} _.
 
 Lemma size_slice T (s : seq T) n k : 
   size (slice s k n) = minn n (size s) - k.
@@ -54,10 +57,54 @@ Hypothesis CSR :
   ].
 
 Theorem SpMV i : i < N ->
-  \sum_(X_pos`_i <= k < X_pos`_i.+1) V`_(X_crd`_k) * X`_[i, X_crd`_k] = 
+  \sum_(X_pos`_i <= k < X_pos`_i.+1) V`_(X_crd`_k) * X_val`_k = 
   \sum_(j < K) V`_j * X`_[i, j].
 Proof.
-Admitted.
+  case: CSR=> XE Xn0 Col_chunk_sorted colLK rowLK ?.
+  under eq_big_seq=> ?. 
+  { rewrite mem_index_iota=> ? /[! (@XE i)] //; over. }
+  have: forall x y, index_iota x y = map (addn x) (index_iota 0 (y - x)).
+  { move=>>; by rewrite /index_iota -iotaDl addn0 subn0. }
+  move=>-> /=. rewrite big_map.
+  set D := X_pos`_i.+1 - X_pos`_i.
+  rewrite big_seq_cond.
+  under congr_big. 
+  { over. }
+  { move=>?. over. }
+  { move=> j. rewrite mem_index_iota andbT=> ?.
+    rewrite -(nth_slice X_pos`_i.+1); last lia.
+    over. }
+  move=> /=. rewrite -big_seq_cond.
+  set X_crd' := slice _ _ _.
+  have: size X_crd' = D. 
+  { rewrite /X_crd' size_slice /D size_tuple.
+    move: (rowLK i.+1). lia. }
+  move=> /[dup] scrd'E <-.
+  have<-:
+    \sum_(j  <- X_crd') V`_j * X`_[i, j] =
+    \sum_(i0 <- index_iota 0 (size X_crd')) V`_(X_crd'`_i0) * X `_[ i, X_crd'`_i0].
+  { exact/big_nth. }
+  have->: 
+    \sum_(j < K) V`_j * X `_[ i, j] = 
+    \sum_(0 <= j < K) V`_j * X `_[ i, j].
+  { exact/esym/big_mkord. }
+  have P: perm_eq (filter (mem X_crd') (index_iota 0 K)) X_crd'.
+  { apply/uniq_perm.
+    { exact/filter_uniq/iota_uniq. }
+    { apply/sorted_uniq/Col_chunk_sorted=> //; [exact/trans|exact/irr]. }
+    move=> ?. rewrite mem_filter mem_index_iota /=.
+    apply/idP/idP=> [/andP[]|] // /[dup]{-1}-> /= /mem_drop/mem_take/(nthP 0).
+    by case=> ? _ <-. }
+  rewrite -(perm_big _ P) /= big_filter.
+  apply/big_rmcond_in=> j /= /[! mem_index_iota].
+  rewrite /X_crd'=> ? /nthP Xn0'.
+  apply/eqP; rewrite muln_eq0; apply/orP; right.
+  case: (@Xn0 i j)=> // H; apply/H=> [[k ? Eq]]; apply/(Xn0' 0).
+  exists (k - X_pos`_i).
+  { rewrite scrd'E /D; lia. }
+  rewrite nth_slice ?Eq; last lia.
+  congr nth; lia.
+Qed.
 
 End CSR.
 
