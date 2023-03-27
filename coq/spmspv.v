@@ -67,7 +67,7 @@ Proof. rewrite /slice size_drop size_take; case: ltngtP; lia. Qed.
 
 Variant inh (T : Type) : Prop := Inh (p : T).
 
-Section CSR.
+Section SpMSpV.
 
 Definition CSR N K M 
   (X : 'M_(N, K))
@@ -142,7 +142,7 @@ Lemma sumE i kX kV:
   V_pos[0] <= kV ->
   i < N ->
   sum kX kV X_pos[i.+1] V_pos[1] = 
-  \sum_(j <- intersect_slice kX X_crd X_pos[i.+1] kV V_crd V_pos[1]) V[0, j] * X[i, j].
+  \sum_(j <- intersect_slice kX X_crd X_pos[i.+1] kV V_crd V_pos[1]) X[i, j] * V[0, j].
 Proof.
 move=> kXL kVL ?.
 Print ubnP.
@@ -229,18 +229,18 @@ Proof. by move/mem_drop/mem_take. Qed.
 
 Theorem SpMSpV i : i < N ->
   sum X_pos[i] V_pos[0] X_pos[i.+1] V_pos[1] = 
-  \sum_(j < K) V[0, j] * X[i, j].
+  \sum_(j < K) X[i, j] * V[0, j].
 Proof.
 move=> iL.
 rewrite sumE //.
-have <-: \sum_(0 <= j < K) V[0, j] * X[i, j] =\sum_(j < K) V[0, j] * X[i, j] by apply/big_mkord.
+have <-: \sum_(0 <= j < K) X[i, j] * V[0, j] =\sum_(j < K) X[i, j] * V[0, j] by apply/big_mkord.
 set intr := intersect_slice _ _ _ _ _ _.
 case: CSRX=> _ NZ1 /(_ _ iL) S1 C /(_ i.+1)?; case: SVV=> _ NZ2 /(_ 0 erefl) S2 ? /(_ 1)?.
-have ->: \sum_(0 <= j < K) V[0, j] * X[i, j] =
-  \sum_(0 <= j < K | j \in intr) V[0, j] * X[i, j].
+have ->: \sum_(0 <= j < K) X[i, j] * V[0, j] =
+  \sum_(0 <= j < K | j \in intr) X[i, j] * V[0, j].
 { apply/esym/big_rmcond_in=> ?? IN.
   apply/eqP; move: IN; apply/contraNT.
-  rewrite muln_eq0 negb_or=> /andP-[].
+  rewrite muln_eq0 negb_or=> /andP-[/[swap]].
   case/NZ2=> -[j1 ? -> _ ?].
   case/NZ1=> -[j2 ? E ??].
   rewrite in_intersect ? (S1, S2) // {1}E.
@@ -255,4 +255,4 @@ by move/nthP=> /(_ 0)-[??<- ]; rewrite C.
 Qed.
 
 
-End CSR.
+End SpMSpV.
