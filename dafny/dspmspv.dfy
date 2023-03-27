@@ -38,7 +38,7 @@ function index(x : nat, y: array<nat>) : (i : nat)
   ensures i >= y.Length ==> notin(x, y)
   ensures i <  y.Length ==> y[i] == x
 
-method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
+method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
                                   X_crd1 : array<nat>, X_pos1 : array<nat>,
               v_val : array<int>, v_crd : array<nat>, v_pos : array<nat>) returns (y : array<int>)
   // X requirments 
@@ -48,7 +48,9 @@ method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
   requires forall i :: 0 <= i < X_crd.Length ==> X_crd[i] < X_val.Length
   requires forall i :: 0 <= i < X_pos.Length ==> 0 <= X_pos[i] <= X_val.Length
   requires X_pos1.Length == 2
-  requires forall i :: 0 <= i < 2 ==> X_pos1[i] <= X_crd1.Length
+  requires X_pos1[0] == 0
+  requires X_pos1[1] == X_crd1.Length
+  // requires forall i :: 0 <= i < 2 ==> X_pos1[i] <= X_crd1.Length
   requires X_crd1.Length < X_pos.Length
   requires forall i :: 0 <= i < X_crd1.Length ==> X_crd1[i] < X_pos.Length - 1
   requires forall i, j :: 0 <= i < j < X_crd1.Length ==> X_crd1[i] < X_crd1[j]
@@ -61,10 +63,11 @@ method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
   requires forall i :: 0 <= i < 2            ==> 0 <= v_pos[i] <= v_val.Length
 
   ensures y.Length + 1 == X_pos.Length
-  ensures 
-    forall i :: X_pos1[0] <= i < X_pos1[1] ==>
-      y[X_crd1[i]] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], v_pos[0], X_pos[i+1], v_pos[1])
-  ensures forall i :: 0 <= i < y.Length ==> notin(i, X_crd1) ==> y[i] == 0
+  ensures forall i :: 0 <= i < y.Length ==> 
+    y[i] == 
+      if index(i, X_crd1) < X_crd1.Length then 
+        sum(X_val, X_crd, v_val, v_crd, X_pos[index(i, X_crd1)], v_pos[0], X_pos[index(i, X_crd1)+1], v_pos[1])
+      else 0
   {
     var N : nat := X_pos.Length - 1;
     y := new int[N](i => 0);
