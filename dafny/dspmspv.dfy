@@ -83,9 +83,9 @@ method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
     while n < pX_end1
       invariant n <= X_crd1.Length
       invariant forall i :: X_pos1[0] <= i < n ==> y[X_crd1[i]] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], v_pos[0], X_pos[i+1], v_pos[1])
+      invariant forall i :: n <= i < X_crd1.Length ==> y[X_crd1[i]] == 0
       invariant forall i :: 0 <= i < y.Length ==> notin(i, X_crd1) ==> y[i] == 0
       {
-        y[X_crd1[n]] := 0;
         kX     := X_pos[n];
         pX_end := X_pos[n + 1];
         kV     := v_pos[0];
@@ -94,6 +94,7 @@ method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
         while (kX < pX_end && kV < pV_end) 
           invariant X_pos[n] <= kX <= pX_end
           invariant v_pos[0] <= kV <= pV_end
+          invariant forall i :: n < i < X_crd1.Length ==> y[X_crd1[i]] == 0
           invariant forall i :: 0 <= i < y.Length ==> notin(i, X_crd1) ==> y[i] == 0
           invariant forall i :: X_pos1[0] <= i < n ==> y[X_crd1[i]] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], v_pos[0], X_pos[i+1], v_pos[1])
           invariant y[X_crd1[n]] + sum(X_val, X_crd, v_val, v_crd, kX, kV, pX_end, pV_end) == sum(X_val, X_crd, v_val, v_crd, X_pos[n], v_pos[0], pX_end, pV_end)
@@ -103,15 +104,12 @@ method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
             kV0 := v_crd[kV];
             k := min(kV0, kX0);
             if (kX0 == k && kV0 == k) {
-              assert (kX0 == kV0);
               y[X_crd1[n]] := y[X_crd1[n]] + X_val[kX] * v_val[kV];
               kX := kX + 1;
               kV := kV + 1;
             } else if (kX0 == k) {
-              assert(kX0 < kV0);
               kX := kX + 1;
             } else if (kV0 == k) {
-              assert(kV0 < kX0);
               kV := kV + 1;
             }
           }

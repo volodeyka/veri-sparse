@@ -107,17 +107,12 @@ function sum(X_val : array<int>, X_crd : array<nat>,
   requires forall i :: 0 <= i < v_crd.Length ==> v_crd[i] < v_val.Length
   requires 0 <= kV <= v_crd.Length
 
-  ensures (pV_end <= kV || pX_end <= kX) ==> s == 0
-  ensures 
-    kX < pX_end && kV < pV_end ==>
-    X_crd[kX] == v_crd[kV] ==> 
-    s == sum(X_val, X_crd, v_val, v_crd, kX + 1, kV + 1, pX_end, pV_end) + v_val[v_crd[kV]] * X_val[X_crd[kX]]
   decreases pX_end + pV_end - (kX + kV)
   {
     if pV_end <= kV || pX_end <= kX then 
       0
     else if X_crd[kX] == v_crd[kV] then 
-      sum(X_val, X_crd, v_val, v_crd, kX + 1, kV + 1, pX_end, pV_end) + v_val[v_crd[kV]] * X_val[X_crd[kX]]
+      sum(X_val, X_crd, v_val, v_crd, kX + 1, kV + 1, pX_end, pV_end) + v_val[kV] * X_val[kX]
     else if X_crd[kX] < v_crd[kV] then 
       sum(X_val, X_crd, v_val, v_crd, kX + 1, kV, pX_end, pV_end)
     else sum(X_val, X_crd, v_val, v_crd, kX, kV + 1, pX_end, pV_end)
@@ -149,7 +144,7 @@ method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
       y[i] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], v_pos[0], X_pos[i+1], v_pos[1])
   {
     var N : nat := X_pos.Length - 1;
-    y := new int[N];
+    y := new int[N](i => 0);
 
     var n : nat := 0;
     var kX , pX_end : nat;
@@ -160,8 +155,8 @@ method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
     while n < N
       invariant n <= y.Length
       invariant forall i :: 0 <= i < n ==> y[i] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], v_pos[0], X_pos[i+1], v_pos[1])
+      invariant forall i :: n <= i < y.Length ==> y[i] == 0
       { 
-        y[n]   := 0;
         kX     := X_pos[n];
         pX_end := X_pos[n + 1];
         kV     := v_pos[0];
@@ -170,6 +165,7 @@ method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
         while (kX < pX_end && kV < pV_end) 
         invariant X_pos[n] <= kX <= pX_end
         invariant v_pos[0] <= kV <= pV_end
+        invariant forall i :: n < i < y.Length ==> y[i] == 0
         invariant forall i :: 0 <= i < n ==> y[i] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], v_pos[0], X_pos[i+1], v_pos[1])
         invariant y[n] + sum(X_val, X_crd, v_val, v_crd, kX, kV, pX_end, pV_end) == sum(X_val, X_crd, v_val, v_crd, X_pos[n], v_pos[0], pX_end, pV_end)
         decreases pX_end + pV_end - (kX + kV)
@@ -178,15 +174,12 @@ method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
             kV0 := v_crd[kV];
             k := min(kV0, kX0);
             if (kX0 == k && kV0 == k) {
-              assert (kX0 == kV0);
-              y[n] := y[n] + X_val[kX0] * v_val[kX0];
+              y[n] := y[n] + X_val[kX] * v_val[kV];
               kX := kX + 1;
               kV := kV + 1;
             } else if (kX0 == k) {
-              assert(kX0 < kV0);
               kX := kX + 1;
             } else if (kV0 == k) {
-              assert(kV0 < kX0);
               kV := kV + 1;
             }
           }
