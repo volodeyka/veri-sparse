@@ -39,8 +39,8 @@ function sum(X_val: array<int>, X_crd: array<nat>, v_pos: array<nat>, v_val: arr
   requires k <= X_val.Length
   requires X_val.Length == X_crd.Length
   requires v_pos.Length == v_val.Length
-  requires sorted(v_pos)
-  requires forall i :: 0 <= i < X_crd.Length ==> 0 <= X_crd[i] < v_pos[v_pos.Length - 1]
+  // requires sorted(v_pos)
+  // requires forall i :: 0 <= i < X_crd.Length ==> 0 <= X_crd[i] < v_pos[v_pos.Length - 1]
   ensures k <= b ==> s == 0
   ensures b < k ==> (contains(v_pos, X_crd[b]) ==> s == sum(X_val, X_crd, v_pos, v_val, b + 1, k) + X_val[b] * v_val[findIndexOf(v_pos, X_crd[b])])
   decreases k - b
@@ -58,9 +58,9 @@ method SpMSpV(X_val: array<int>, X_crd: array<nat>, X_pos: array<nat>, v_pos: ar
   requires X_crd.Length == X_val.Length
   requires X_pos.Length >= 1
   requires v_pos.Length == v_val.Length
-  requires sorted(v_pos)
+  // requires sorted(v_pos) - since both are compressed, not needed
+  // requires forall i :: 0 <= i < X_crd.Length ==> X_crd[i] < v_pos[v_pos.Length - 1]
   requires forall i, j :: 0 <= i < j < X_pos.Length ==> X_pos[i] <= X_pos[j]
-  requires forall i :: 0 <= i < X_crd.Length ==> X_crd[i] < v_pos[v_pos.Length - 1]
   requires forall i :: 0 <= i < X_pos.Length ==> X_pos[i] <= X_val.Length
   ensures y.Length + 1 == X_pos.Length
   ensures forall i :: 0 <= i < y.Length ==> y[i] == sum(X_val, X_crd, v_pos, v_val, X_pos[i], X_pos[i + 1])
