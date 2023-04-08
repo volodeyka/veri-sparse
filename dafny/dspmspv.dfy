@@ -3,13 +3,11 @@ function sum(X_val : array<int>, X_crd : array<nat>,
   reads X_val, X_crd
   requires X_val.Length == X_crd.Length
   requires pX_end <= X_crd.Length
-  requires forall i :: 0 <= i < X_crd.Length ==> X_crd[i] < X_val.Length
   requires 0 <= kX <= X_crd.Length
 
   reads v_crd, v_val
   requires v_val.Length == v_crd.Length
   requires pV_end <= v_crd.Length
-  requires forall i :: 0 <= i < v_crd.Length ==> v_crd[i] < v_val.Length
   requires 0 <= kV <= v_crd.Length
 
   decreases pX_end + pV_end - (kX + kV)
@@ -33,10 +31,28 @@ predicate notin(y: nat, x : array<nat>)
   forall i :: 0 <= i < x.Length ==> y != x[i]
 }
 
+predicate notin_seq(y: nat, x : seq<nat>) 
+{
+  forall i :: 0 <= i < |x| ==> y != x[i]
+}
+
+function index_seq(x : nat, y: seq<nat>) : (i : nat)
+  ensures i >= |y| ==> notin_seq(x, y)
+  ensures i <  |y| ==> y[i] == x
+{
+  if |y| == 0 then 0 
+  else 
+    if y[0] == x then 0 
+    else 1 + index_seq(x, y[1..])
+}
+
 function index(x : nat, y: array<nat>) : (i : nat)
   reads y
   ensures i >= y.Length ==> notin(x, y)
   ensures i <  y.Length ==> y[i] == x
+{
+  index_seq(x, y[..])
+}
 
 method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
                                   X_crd1 : array<nat>, X_pos1 : array<nat>,
@@ -45,31 +61,28 @@ method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
   requires X_pos.Length >= 1
   requires X_val.Length == X_crd.Length
   requires forall i, j :: 0 <= i < j < X_pos.Length ==> X_pos[i] <= X_pos[j];
-  requires forall i :: 0 <= i < X_crd.Length ==> X_crd[i] < X_val.Length
   requires forall i :: 0 <= i < X_pos.Length ==> 0 <= X_pos[i] <= X_val.Length
   requires X_pos1.Length == 2
   requires X_pos1[0] == 0
-  requires X_pos1[1] == X_crd1.Length
-  // requires forall i :: 0 <= i < 2 ==> X_pos1[i] <= X_crd1.Length
+  requires X_pos1[1] >= X_crd1.Length
   requires X_crd1.Length < X_pos.Length
-  requires forall i :: 0 <= i < X_crd1.Length ==> X_crd1[i] < X_pos.Length - 1
+  requires forall i :: 0 <= i < X_crd1.Length ==> X_crd1[i] < X_pos1[1]
   requires forall i, j :: 0 <= i < j < X_crd1.Length ==> X_crd1[i] < X_crd1[j]
 
   // v requirments 
   requires v_pos.Length == 2
   requires v_val.Length == v_crd.Length
   requires forall i, j :: 0 <= i < j < v_pos.Length ==> v_pos[i] < v_pos[j];
-  requires forall i :: 0 <= i < v_crd.Length ==> v_crd[i] < v_val.Length
   requires forall i :: 0 <= i < 2            ==> 0 <= v_pos[i] <= v_val.Length
 
-  ensures y.Length + 1 == X_pos.Length
+  ensures y.Length == X_pos1[1]
   ensures forall i :: 0 <= i < y.Length ==> 
     y[i] == 
       if index(i, X_crd1) < X_crd1.Length then 
         sum(X_val, X_crd, v_val, v_crd, X_pos[index(i, X_crd1)], v_pos[0], X_pos[index(i, X_crd1)+1], v_pos[1])
       else 0
   {
-    var N : nat := X_pos.Length - 1;
+    var N : nat := X_pos1[1];
     y := new int[N](i => 0);
 
     var n : nat := X_pos1[0];
@@ -77,7 +90,7 @@ method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
     var kV , pV_end : nat;
     var kX0, kV0    : nat;
     var k : nat;
-    var pX_end1 := X_pos1[1];
+    var pX_end1 := X_crd1.Length;
 
 
     while n < pX_end1
@@ -116,3 +129,29 @@ method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
         n := n + 1;
       }
   }
+
+method Main() {
+  var X_val := new int[4](i => 1);
+  var X_crd := new nat[4](i => if i <= 3 then (3 - i) * 2 else 0);
+  var X_pos := new nat[5](i => i);
+  var X_crd1 := new nat[4](i => i * 2);
+  var X_pos1 := new nat[2](i => i * 8);
+
+  var v_val := new int[4](i => 30 + i);
+  var v_crd := new nat[4](i => i * 2);
+  var v_pos := new nat[2](i => if i == 0 then 0 else 4);
+
+  var y := DSpMSpV(
+    X_val,
+    X_crd,
+    X_pos,
+    X_crd1,
+    X_pos1,
+    v_val,
+    v_crd,
+    v_pos
+  );
+
+  var i := 0;
+  while i < 8 { print y[i]; print "; "; i := i + 1; }
+}

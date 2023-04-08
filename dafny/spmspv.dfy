@@ -3,13 +3,11 @@ function sum(X_val : array<int>, X_crd : array<nat>,
   reads X_val, X_crd
   requires X_val.Length == X_crd.Length
   requires pX_end <= X_crd.Length
-  requires forall i :: 0 <= i < X_crd.Length ==> X_crd[i] < X_val.Length
   requires 0 <= kX <= X_crd.Length
 
   reads v_crd, v_val
   requires v_val.Length == v_crd.Length
   requires pV_end <= v_crd.Length
-  requires forall i :: 0 <= i < v_crd.Length ==> v_crd[i] < v_val.Length
   requires 0 <= kV <= v_crd.Length
 
   decreases pX_end + pV_end - (kX + kV)
@@ -33,14 +31,12 @@ method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
   requires X_pos.Length >= 1
   requires X_val.Length == X_crd.Length
   requires forall i, j :: 0 <= i < j < X_pos.Length ==> X_pos[i] <= X_pos[j];
-  requires forall i :: 0 <= i < X_crd.Length ==> X_crd[i] < X_val.Length
   requires forall i :: 0 <= i < X_pos.Length ==> 0 <= X_pos[i] <= X_val.Length
 
   // v requirments 
   requires v_pos.Length == 2
   requires v_val.Length == v_crd.Length
   requires forall i, j :: 0 <= i < j < v_pos.Length ==> v_pos[i] < v_pos[j];
-  requires forall i :: 0 <= i < v_crd.Length ==> v_crd[i] < v_val.Length
   requires forall i :: 0 <= i < 2            ==> 0 <= v_pos[i] <= v_val.Length
 
   ensures y.Length + 1 == X_pos.Length
@@ -91,4 +87,38 @@ method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
         n := n + 1;
       }
   }
->>>>>>> c51f6ee (add SpMSpV dafny)
+
+function max(x : nat, y : nat) : nat {
+  if x >= y then x else y
+}
+
+method Main() {
+  var X_val := new int[4](i => 1);
+  var X_crd := new nat[4](i => if i <= 3 then (3 - i) * 2 else 0);
+  var X_pos := new nat[9];
+  X_pos[0] := 0;
+  X_pos[1] := 1;
+  X_pos[2] := 1;
+  X_pos[3] := 2;
+  X_pos[4] := 2;
+  X_pos[5] := 3;
+  X_pos[6] := 3;
+  X_pos[7] := 4;
+  X_pos[8] := 4;
+
+  var v_val := new int[4](i => 30 + i);
+  var v_crd := new nat[4](i => i * 2);
+  var v_pos := new nat[2](i => if i == 0 then 0 else 4);
+
+  var y := SpMSpV(
+    X_val,
+    X_crd,
+    X_pos,
+    v_val,
+    v_crd,
+    v_pos
+  );
+
+  var i := 0;
+  while i < 8 { print y[i]; print "; "; i := i + 1; }
+}
