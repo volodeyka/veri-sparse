@@ -131,7 +131,7 @@ Lemma sliceS s k n :
   k < size s ->
   slice s k n = s[k] :: slice s k.+1 n.
 Proof.
-move=>*; rewrite /slice (@drop_nth _ 0) ?nth_take // size_take; case: ifP; lia.
+move=>*; rewrite /slice (drop_nth 0) ?nth_take // size_take; case: ifP; lia.
 Qed.
 
 

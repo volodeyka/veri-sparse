@@ -158,7 +158,7 @@ Lemma sliceS s k n :
   k < size s ->
   slice s k n = s[k] :: slice s k.+1 n.
 Proof.
-move=>*; rewrite /slice (@drop_nth _ 0) ?nth_take // size_take; case: ifP; lia.
+move=>*; rewrite /slice (drop_nth 0) ?nth_take // size_take; case: ifP; lia.
 Qed.
 
 
@@ -256,17 +256,18 @@ Theorem DSpMSpV i : i < N ->
   let ind := index i X_crd1 in
   (if ind < P then 
     sum X_pos[ind] V_pos[0] X_pos[ind.+1] V_pos[1]
-  else 0) = 
-  \sum_(j < K) X[i, j] * V[0, j].
+  else 0) = \sum_(j < K) X[i, j] * V[0, j].
 Proof.
 move=> iL /=; have: P = size X_crd1 by rewrite size_tuple.
 move=> /[dup] sE {2}->.
 rewrite index_mem; case: ifP.
 { move=> /[dup] II; rewrite -{4}(nth_index 0 II).
   rewrite -index_mem -sE; move: {i iL II} (index _ _)=> i iL.
-  case: DCSRX=> _ NZ1 /(_ _ iL) S1 C [] ? /(_ i.+1)?; case: SVV=> _ NZ2 /(_ 0 erefl) S2 ? /(_ 1)?.
+  case: DCSRX=> _ NZ1 /(_ _ iL) S1 C [] ? /(_ i.+1)?.
+  case: SVV=> _ NZ2 /(_ 0 erefl) S2 ? /(_ 1)?.
   rewrite sumE //.
-  have <-: \sum_(0 <= j < K) X[X_crd1[i], j] * V[0, j] =\sum_(j < K) X[X_crd1[i], j] * V[0, j] by apply/big_mkord.
+  have <-: \sum_(0 <= j < K) X[X_crd1[i], j] * V[0, j] =
+    \sum_(j < K) X[X_crd1[i], j] * V[0, j] by apply/big_mkord.
   set intr := intersect_slice _ _ _ _ _ _.
   move=> /sorted_uniq-/(_ (@trans _) (@irr _)) /nth_uniq uE.
   have ->: \sum_(0 <= j < K) X[X_crd1[i], j] * V[0, j] =
@@ -287,7 +288,8 @@ rewrite index_mem; case: ifP.
   apply/idP/idP=> [/andP-[->] //|/[dup]{2}-> /andP-[/slice_in]].
   by move/nthP=> /(_ 0)-[??<- ]; rewrite C. }
 move=> /negbT IN.
-have <-: \sum_(0 <= j < K) X[i, j] * V[0, j] =\sum_(j < K) X[i, j] * V[0, j] by apply/big_mkord.
+have <-: \sum_(0 <= j < K) X[i, j] * V[0, j] =
+  \sum_(j < K) X[i, j] * V[0, j] by apply/big_mkord.
 suff ->: \sum_(0 <= j < K) X[i, j] * V[0, j] =
     \sum_(0 <= j < K | pred0 j) X[i, j] * V[0, j].
 { by rewrite -big_filter filter_pred0 big_nil. }

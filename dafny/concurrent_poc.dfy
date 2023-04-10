@@ -1,10 +1,11 @@
 datatype Process = Process(value: int)
 datatype PState = Waiting | WaitingToUpdateResult | UpdatingResult | Done
+// datatype PState = Waiting | WaitingToUpdateResult | UpdatingResult(idx : nat) | Done
 
 class MatrixVectorMultiplier
 {
     var nextRowIndex: nat
-    var curRowIndex: nat
+    var curRowIndex: nat // curRowIndex can be arbirtaty chosen by at each moment at the time 
 
     var P: set<Process>
 
@@ -152,6 +153,9 @@ class MatrixVectorMultiplier
         modifies this, y
         ensures Valid()
     {
+        // add one value, increment idx in UpdatingResult(idx : nat) by one
+        // invariant should be 
+           // forall i :: y[i] == \sum_{0 < k < idx} M[i, k] * v[k]
         var curRow: array<int> := GetSpecifiedRow(M, curRowIndex);
         y[curRowIndex] := DotProduct(curRow, x);
         curRowIndex := curRowIndex + 1;
