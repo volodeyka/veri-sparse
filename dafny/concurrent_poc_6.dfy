@@ -11,13 +11,15 @@ class Process {
 }
 
 function sum(s : seq<nat>) : nat
+  ensures sum(s) == 0 ==> forall i :: 0 <= i < |s| ==> s[i] == 0
+//   ensures sum(s) > 0 ==> exists i :: 0 <= i < |s| && s[i] > 0
 {
     if s == [] then 0 else s[0] + sum(s[1..])
 }
 
 lemma sum0(s : seq<nat>)
   ensures sum(s) == 0 ==> forall i :: 0 <= i < |s| ==> s[i] == 0
-  
+//   ensures sum(s) > 0 ==> exists i :: 0 <= i < |s| && s[i] > 0
   {
     if s == [] {
     } else {
@@ -96,18 +98,57 @@ class MatrixVectorMultiplier
         M.Length1 == |x| &&
         numRows == y.Length &&
         |P| == numRows &&
-        // 0 <= totalOps <= M.Length0 * M.Length1 &&
+        0 <= totalOps <= M.Length0 * M.Length1 &&
         |P| == leftOvers.Length &&
 
-        (forall p, q :: p in P && q in P && p != q ==> p.row !=  q.row) &&
+        (forall p, q :: p in P && q in P && p != q ==> p.row != q.row) &&
+        (forall p, q :: p in P && q in P ==> p != q) &&
         (forall p :: p in P ==> 0 <= p.row < numRows) &&
         (forall p :: p in P ==> 0 <= p.curColumn <= M.Length1) &&
         (forall p :: p in P ==> 0 <= p.opsLeft <= M.Length1) && 
         (forall p :: p in P ==> y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)) &&
         (forall p :: p in P ==> leftOvers[p.row] == p.opsLeft) &&
         (forall p :: p in P ==> p.opsLeft == M.Length1 - p.curColumn) &&
-        (sum(leftOvers[..]) == totalOps)
+        sum(leftOvers[..]) == totalOps &&
+        (sum(leftOvers[..]) > 0 ==> exists p :: p in P && p.opsLeft > 0)
     }
+
+
+
+// function findProcessWithRow(P: set<Process>, targetRow: nat): (p: Process)
+//     reads P
+//     requires exists p :: p in P && p.row == targetRow
+//     ensures p in P && p.row == targetRow
+
+// function index(x : nat, P: set<Process>) : (p : Process)
+//   reads y
+//   ensures p in P
+//   ensures exists pr :: pr in P && pr.opsLeft > 0 ==> p.opsLeft > 0
+// {
+//     p
+// }
+
+// lemma leftOversToOpsLeft(P: set<Process>, leftOvers: array<nat>)
+//     requires |P| == leftOvers.Length
+//     requires (forall p, q :: p in P && q in P && p != q ==> p.row != q.row)
+//     requires (forall p :: p in P ==> 0 <= p.row < leftOvers.Length)
+//     requires (forall p :: p in P ==> leftOvers[p.row] == p.opsLeft)
+//     requires (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == leftOvers[..][i])
+
+//     ensures (sum(leftOvers[..]) == 0) ==> forall p :: p in P && p.opsLeft == 0
+//     ensures (sum(leftOvers[..]) > 0 ==> exists p :: p in P && p.opsLeft > 0)
+// {
+//     var leftOversSeq := leftOvers[..];
+//     assert (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == leftOversSeq[i]);
+//     var i := 0;
+//     while i < leftOvers.Length
+//     {
+//         // if leftOvers[i] > 0 then
+//         //     assert()
+//     }
+
+// }
+
 
     constructor (processes: set<Process>, M_: array2<int>, x_: seq<int>, y_: array<int>, leftOvers : array<nat>)
         // Idea here is that we already have a set of processes such that each one is assigned one row.
@@ -120,6 +161,7 @@ class MatrixVectorMultiplier
         requires |processes| == leftOvers.Length 
         requires |processes| == M_.Length0
         requires (forall p, q :: p in processes && q in processes && p != q ==> p.row !=  q.row)
+        requires (forall p, q :: p in processes && q in processes ==> p != q)
         requires (forall p :: p in processes ==> 0 <= p.row < M_.Length0)
 
         //initializes process start
@@ -162,6 +204,8 @@ class MatrixVectorMultiplier
         requires totalOps > 0
         // requires y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
         modifies this, y, P, leftOvers
+        requires (forall p, q :: p in P && q in P && p != q ==> p.row != q.row)
+
         ensures Valid(M, x, y, P, leftOvers)
         // ensures p.opsLeft == old(p.opsLeft) - 1
         // ensures p.curColumn == old(p.curColumn) + 1
@@ -169,7 +213,7 @@ class MatrixVectorMultiplier
         // ensures p.row == old(p.row)
         // ensures p.row < y.Length
         ensures totalOps == old(totalOps) - 1
-        // ensures sum(leftOvers[..]) < sum(old(leftOvers[..]))
+        ensures sum(leftOvers[..]) == sum(old(leftOvers[..])) - 1
         // ensures y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
     {
         var p :| p in P && p.opsLeft > 0;
@@ -179,15 +223,22 @@ class MatrixVectorMultiplier
         leftOvers[p.row] := leftOvers[p.row] - 1;
         assert (forall i :: 0 <= i < leftOvers.Length ==> i != p.row ==> leftOvers[i] == old(leftOvers[i]));
         assert (leftOvers[p.row] + 1 == old(leftOvers[p.row]));
+        assert((forall p :: p in P ==> leftOvers[p.row] == p.opsLeft));
         sum_exept(old(leftOvers[..]), leftOvers[..], 1, p.row);
         totalOps := totalOps - 1;
+        assert(|P| == leftOvers.Length);
+        assert (forall p, q :: p in P && q in P && p != q ==> p.row != q.row);
+        assert (forall p :: p in P ==> 0 <= p.row < leftOvers.Length);
+        assert (forall p :: p in P ==> leftOvers[p.row] == p.opsLeft);
     }
+
 
 }
 
 method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: array<int>)
     requires |processes| == M.Length0
     requires (forall p, q :: p in processes && q in processes && p != q ==> p.row !=  q.row)
+    requires (forall p, q :: p in processes && q in processes ==> p != q)
     requires (forall p :: p in processes ==> 0 <= p.row < M.Length0)
 
     requires (forall p :: p in processes ==> 0 == p.curColumn)
@@ -211,39 +262,13 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
         invariant sum(leftOvers[..]) >= 0
         invariant mv.totalOps >= 0
         // invariant mv.P
+        invariant (forall p, q :: p in processes && q in processes && p != q ==> p.row !=  q.row)
         decreases mv.totalOps
     {
         mv.processNext(M, x[..], y, processes, leftOvers);
     }
-    // assert(sum(mv.leftOvers[..]) == 0);
-    // assert(forall p :: p in processes ==> y[p.row] == calcRow(M, x[..], p.row, 0));
+    assert(mv.totalOps == 0);
+    assert(forall p :: p in processes ==> y[p.row] == calcRow(M, x[..], p.row, 0));
 
 
 }
-
-
-// method Main() {
-    
-//     var M: array2<int> := new int[3, 3];
-
-
-//     M[0,0] := 1;
-//     M[0,1] := 2;
-//     M[0,2] := 3;
-
-//     M[1,0] := 1;
-//     M[1,1] := 2;
-//     M[1,2] := 3;
-
-//     M[2,0] := 1;
-//     M[2,1] := 20;
-//     M[2,2] := 3;
-
-//     var x := new int[3];
-//     x[0] := 1;
-//     x[1] := -3;
-//     x[2] := 3;
-
-//     var y := calcRow(M, x, 0, 3);
-//     print "output: ", y, "\n";
-// }
