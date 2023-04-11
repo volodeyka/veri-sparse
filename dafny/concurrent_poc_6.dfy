@@ -186,3 +186,39 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
 
 
 }
+
+method Main()
+{
+    var M: array2<int> := new int[3, 3];
+
+    M[0,0] := 1;
+    M[0,1] := 2;
+    M[0,2] := 3;
+
+    M[1,0] := 1;
+    M[1,1] := 2;
+    M[1,2] := 3;
+
+    M[2,0] := 1;
+    M[2,1] := 20;
+    M[2,2] := 3;
+
+    var x := new int[3];
+    x[0] := 1;
+    x[1] := -3;
+    x[2] := 3;
+
+    var p0: Process := new Process(0, 3);
+    var p1: Process := new Process(1, 3);
+    var p2: Process := new Process(2, 3);
+    var processes := {p0, p1, p2};
+
+    assert (forall p, q :: p in processes && q in processes && p != q ==> p.row != q.row);
+    assert (forall p, q :: p in processes && q in processes ==> p != q);
+
+    var y := Run(processes, M, x);
+
+    for i := 0 to 3 {
+        print "output: ", y[i], "\n";
+    }
+}
