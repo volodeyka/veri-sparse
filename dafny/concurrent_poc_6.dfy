@@ -73,20 +73,9 @@ function calcRow(M : array2<int>, x : seq<int>, row: nat, start_index: nat) : (p
         M[row, start_index] * x[start_index] + calcRow(M, x, row, start_index+1)
 }
 
-// function CreateSequenceWithValue(value: nat, length: nat): (s: seq<nat>)
-//     ensures forall i :: 0 <= i < |s| ==> s[i] == value
-//     ensures |s| == length
-//     decreases length
-// {
-//     if length == 0 then []
-//     else [value] + CreateSequenceWithValue(value, length - 1)
-// }
-
 class MatrixVectorMultiplier
 {
     var P: set<Process>
-
-    var finished_calc: set<Process>
 
     var M: array2<int>
     var x: seq<int>
@@ -142,7 +131,7 @@ class MatrixVectorMultiplier
         requires |x_| > 0
         ensures (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == M_.Length1)
         ensures totalOps ==  M_.Length0 * M_.Length1
-        // ensures (forall s :: (forall i :: 0 <= i < |s| ==> s[i] == M_.Length1) ==> sum(s) == |s| * M_.Length1)
+        ensures (forall s :: (forall i :: 0 <= i < |s| ==> s[i] == M_.Length1) ==> sum(s) == |s| * M_.Length1)
         ensures Valid()
     {
         numRows := M_.Length0;
@@ -157,8 +146,6 @@ class MatrixVectorMultiplier
         assert (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == M_.Length1);
         sum_const(leftOvers[..], M_.Length1);
         totalOps := M_.Length0 * M_.Length1;
-
-        finished_calc := {};
         
     }
 
@@ -168,7 +155,7 @@ class MatrixVectorMultiplier
         requires p.opsLeft > 0
         requires p.curColumn < M.Length1
         requires sum(leftOvers[..]) > 0
-        // requires totalOps > 0
+        requires totalOps > 0
         requires y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
         modifies this, y, p, P, leftOvers
         ensures Valid()
@@ -177,7 +164,7 @@ class MatrixVectorMultiplier
         ensures p.curColumn <= M.Length1
         ensures p.row == old(p.row)
         ensures p.row < y.Length
-        // ensures totalOps == old(totalOps) - 1
+        ensures totalOps == old(totalOps) - 1
         // ensures sum(leftOvers[..]) < sum(old(leftOvers[..]))
         ensures y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
     {
@@ -213,12 +200,16 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
     var mv := new MatrixVectorMultiplier(processes, M, x[..], y);
     while sum(mv.leftOvers[..]) > 0 && exists p :: (p in mv.P && p.opsLeft > 0)
         invariant mv.Valid()
+        invariant (forall p :: p in mv.P ==> y[p.row] + calcRow(M, x[..], p.row, p.curColumn) == calcRow(M, x[..], p.row, 0))
+        invariant sum(mv.leftOvers[..]) >= 0
+        invariant mv.totalOps >= 0
+        decreases mv.totalOps
     {
         var p :| p in mv.P && p.opsLeft > 0;
         mv.processNext(p);
     }
     assert(sum(mv.leftOvers[..]) == 0);
-    // assert(forall p :: p in P ==> y[p.row] == calcRow(M, x, p.row, 0));
+    assert(forall p :: p in mv.P ==> y[p.row] == calcRow(M, x[..], p.row, 0));
 
 
 }
