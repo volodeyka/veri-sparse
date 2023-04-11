@@ -17,7 +17,7 @@ class MatrixVectorMultiplier
     var finished_calc: set<Process>
 
     var M: array2<int>
-    var x: array<int>
+    var x: seq<int>
     var y: array<int>
 
     var totalOps: nat
@@ -25,11 +25,11 @@ class MatrixVectorMultiplier
     var numRows: nat
     
 
-    predicate Valid 
+    ghost predicate Valid 
         reads this, P
     {
         M.Length0 == y.Length &&
-        M.Length1 == x.Length &&
+        M.Length1 == |x| &&
         numRows == y.Length &&
         |P| == numRows &&
         0 <= totalOps <= M.Length0 * M.Length1 &&
@@ -41,7 +41,7 @@ class MatrixVectorMultiplier
         (forall p :: p in P ==> 0 <= p.opsLeft <= M.Length1)
     }
 
-    constructor (processes: set<Process>, M_: array2<int>, x_: array<int>, y_: array<int>)
+    constructor (processes: set<Process>, M_: array2<int>, x_: seq<int>, y_: array<int>)
         // Idea here is that we already have a set of processes such that each one is assigned one row.
         // Daphny makes it a ginormous pain in the ass to actually create such a set, so we just assume
         // we already have one.
@@ -59,9 +59,9 @@ class MatrixVectorMultiplier
         requires (forall i :: 0 <= i < y_.Length ==> y_[i] == 0)
         requires y_.Length == M_.Length0
 
-        requires x_.Length == M_.Length1
+        requires |x_| == M_.Length1
         requires M_.Length0 > 0
-        requires x_.Length > 0
+        requires |x_| > 0
         ensures Valid()
     {
         numRows := M_.Length0;
@@ -75,9 +75,9 @@ class MatrixVectorMultiplier
         finished_calc := {};
     }
 
-    function calcRow(row: nat, start_index: nat) : (product: int)
-        reads this, M, x
-        requires M.Length1 == x.Length
+    function calcRow(M : array2<int>, x : seq<int>, row: nat, start_index: nat) : (product: int)
+        reads M
+        requires M.Length1 == |x|
         requires row < M.Length0
         requires start_index <= M.Length1
         decreases M.Length1 - start_index
@@ -85,7 +85,7 @@ class MatrixVectorMultiplier
         if start_index == M.Length1 then
             0
         else
-            M[row, start_index] * x[start_index] + calcRow(row, start_index+1)
+            M[row, start_index] * x[start_index] + calcRow(M, x, row, start_index+1)
     }
 
     method processNext(p: Process)
@@ -94,14 +94,16 @@ class MatrixVectorMultiplier
         requires p.opsLeft > 0
         requires p.curColumn < M.Length1
         requires totalOps > 0
-        modifies y, this, p
+        requires y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
+        modifies this, y, p
+        ensures unchanged(`x)
         ensures Valid()
         ensures p.opsLeft == old(p.opsLeft) - 1
         ensures p.curColumn == old(p.curColumn) + 1
-        ensures totalOps == old(totalOps) - 1
         ensures p.curColumn <= M.Length1
+        ensures p.row == old(p.row)
         ensures p.row < y.Length
-        // ensures y[p.row] + calcRow(p.row, p.curColumn) == calcRow(p.row, 0)
+        ensures y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
     {
         y[p.row] := y[p.row] + M[p.row, p.curColumn] * x[p.curColumn];
         p.opsLeft := p.opsLeft - 1;
@@ -123,6 +125,7 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
     requires M.Length0 > 0
     requires M.Length1 == x.Length
     ensures M.Length0 == y.Length
+    modifies processes
     decreases *
 {
     var i := 0;
@@ -135,9 +138,8 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
         i := i + 1;
     }
 
-    var mv := new MatrixVectorMultiplier(processes, M, x, y);
+    var mv := new MatrixVectorMultiplier(processes, M, x[..], y);
     while mv.totalOps > 0
-        
     {
         var p :| p in mv.P && p.opsLeft > 0;
         mv.processNext(p);
@@ -147,41 +149,41 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
 }
 
 
-// function calcRow(M: array2<int>, x: array<int>, row: nat, start_index: nat) : (product: int)
-//     reads M, x
-//     requires M.Length1 == x.Length
-//     requires row < M.Length0
-//     requires start_index <= M.Length1
-//     decreases M.Length1 - start_index
-// {
-//     if start_index == M.Length1 then
-//         0
-//     else
-//         M[row, start_index] * x[start_index] + calcRow(M, x, row, start_index+1)
-// }
+function calcRow(M: array2<int>, x: array<int>, row: nat, start_index: nat) : (product: int)
+    reads M, x
+    requires M.Length1 == x.Length
+    requires row < M.Length0
+    requires start_index <= M.Length1
+    decreases M.Length1 - start_index
+{
+    if start_index == M.Length1 then
+        0
+    else
+        M[row, start_index] * x[start_index] + calcRow(M, x, row, start_index+1)
+}
 
-// method Main() {
+method Main() {
     
-//     var M: array2<int> := new int[3, 3];
+    var M: array2<int> := new int[3, 3];
 
 
-//     M[0,0] := 1;
-//     M[0,1] := 2;
-//     M[0,2] := 3;
+    M[0,0] := 1;
+    M[0,1] := 2;
+    M[0,2] := 3;
 
-//     M[1,0] := 1;
-//     M[1,1] := 2;
-//     M[1,2] := 3;
+    M[1,0] := 1;
+    M[1,1] := 2;
+    M[1,2] := 3;
 
-//     M[2,0] := 1;
-//     M[2,1] := 20;
-//     M[2,2] := 3;
+    M[2,0] := 1;
+    M[2,1] := 20;
+    M[2,2] := 3;
 
-//     var x := new int[3];
-//     x[0] := 1;
-//     x[1] := -3;
-//     x[2] := 3;
+    var x := new int[3];
+    x[0] := 1;
+    x[1] := -3;
+    x[2] := 3;
 
-//     var y := calcRow(M, x, 0, 3);
-//     print "output: ", y, "\n";
-// }
+    var y := calcRow(M, x, 0, 3);
+    print "output: ", y, "\n";
+}

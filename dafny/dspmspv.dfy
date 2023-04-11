@@ -51,7 +51,7 @@ function index(x : nat, y: array<nat>) : (i : nat)
   ensures i >= y.Length ==> notin(x, y)
   ensures i <  y.Length ==> y[i] == x
 {
-  index_seq(x, y[..])
+  index_seq(x, y[.. ])
 }
 
 method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
