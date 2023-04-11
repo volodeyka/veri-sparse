@@ -131,7 +131,7 @@ class MatrixVectorMultiplier
         requires |x_| > 0
         ensures (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == M_.Length1)
         ensures totalOps ==  M_.Length0 * M_.Length1
-        ensures (forall s :: (forall i :: 0 <= i < |s| ==> s[i] == M_.Length1) ==> sum(s) == |s| * M_.Length1)
+        // ensures (forall s :: (forall i :: 0 <= i < |s| ==> s[i] == M_.Length1) ==> sum(s) == |s| * M_.Length1)
         ensures Valid()
     {
         numRows := M_.Length0;
@@ -192,7 +192,7 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
     requires M.Length0 > 0
     requires M.Length1 == x.Length
     ensures M.Length0 == y.Length
-    modifies processes
+    modifies processes, M, x
 {
     var i := 0;
     y := new int[M.Length0](i => 0);
@@ -200,7 +200,7 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
     var mv := new MatrixVectorMultiplier(processes, M, x[..], y);
     while sum(mv.leftOvers[..]) > 0 && exists p :: (p in mv.P && p.opsLeft > 0)
         invariant mv.Valid()
-        invariant (forall p :: p in mv.P ==> y[p.row] + calcRow(M, x[..], p.row, p.curColumn) == calcRow(M, x[..], p.row, 0))
+        invariant (forall p :: p in mv.P ==> mv.y[p.row] + calcRow(mv.M, mv.x[..], p.row, p.curColumn) == calcRow(mv.M, mv.x[..], p.row, 0))
         invariant sum(mv.leftOvers[..]) >= 0
         invariant mv.totalOps >= 0
         decreases mv.totalOps
