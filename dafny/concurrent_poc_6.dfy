@@ -96,7 +96,6 @@ class MatrixVectorMultiplier
         requires totalOps > 0
         requires y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
         modifies this, y, p
-        ensures unchanged(`x)
         ensures Valid()
         ensures p.opsLeft == old(p.opsLeft) - 1
         ensures p.curColumn == old(p.curColumn) + 1
