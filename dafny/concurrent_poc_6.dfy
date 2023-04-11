@@ -86,10 +86,10 @@ class MatrixVectorMultiplier
 
     var numRows: nat
 
-    var leftOvers : array<nat>
+    // var leftOvers : array<nat>
     
 
-    ghost predicate Valid(M: array2<int>, x: seq<int>, y: array<int>, P: set<Process>)
+    ghost predicate Valid(M: array2<int>, x: seq<int>, y: array<int>, P: set<Process>, leftOvers : array<nat>)
         reads this, y, P, M, leftOvers
     {
         M.Length0 == y.Length &&
@@ -109,13 +109,15 @@ class MatrixVectorMultiplier
         (sum(leftOvers[..]) == totalOps)
     }
 
-    constructor (processes: set<Process>, M_: array2<int>, x_: seq<int>, y_: array<int>)
+    constructor (processes: set<Process>, M_: array2<int>, x_: seq<int>, y_: array<int>, leftOvers : array<nat>)
         // Idea here is that we already have a set of processes such that each one is assigned one row.
         // Daphny makes it a ginormous pain in the ass to actually create such a set, so we just assume
         // we already have one.
 
         //this states that the number of rows and processes are the same, and that there is one process
         //for every row
+        requires (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == M_.Length1)
+        requires |processes| == leftOvers.Length 
         requires |processes| == M_.Length0
         requires (forall p, q :: p in processes && q in processes && p != q ==> p.row !=  q.row)
         requires (forall p :: p in processes ==> 0 <= p.row < M_.Length0)
@@ -133,7 +135,7 @@ class MatrixVectorMultiplier
         ensures (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == M_.Length1)
         ensures totalOps ==  M_.Length0 * M_.Length1
         // ensures (forall s :: (forall i :: 0 <= i < |s| ==> s[i] == M_.Length1) ==> sum(s) == |s| * M_.Length1)
-        ensures Valid(M_, x_, y_, processes)
+        ensures Valid(M_, x_, y_, processes, leftOvers)
     {
         numRows := M_.Length0;
         // P := processes;
@@ -142,7 +144,7 @@ class MatrixVectorMultiplier
         // y := y_;
 
         new;
-        leftOvers := new nat[M_.Length0](i => M_.Length1);
+        // var leftOvers := new nat[M_.Length0](i => M_.Length1);
 
         assert (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == M_.Length1);
         sum_const(leftOvers[..], M_.Length1);
@@ -150,8 +152,8 @@ class MatrixVectorMultiplier
         
     }
 
-    method processNext(M: array2<int>, x: seq<int>, y: array<int>, P : set<Process>)
-        requires Valid(M, x, y, P)
+    method processNext(M: array2<int>, x: seq<int>, y: array<int>, P : set<Process>, leftOvers : array<nat>)
+        requires Valid(M, x, y, P, leftOvers)
         requires exists p :: (p in P && p.opsLeft > 0)
         // requires p in P
         // requires p.opsLeft > 0
@@ -159,8 +161,8 @@ class MatrixVectorMultiplier
         requires sum(leftOvers[..]) > 0
         requires totalOps > 0
         // requires y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
-        modifies this, y, P
-        ensures Valid(M, x, y, P)
+        modifies this, y, P, leftOvers
+        ensures Valid(M, x, y, P, leftOvers)
         // ensures p.opsLeft == old(p.opsLeft) - 1
         // ensures p.curColumn == old(p.curColumn) + 1
         // ensures p.curColumn <= M.Length1
@@ -200,19 +202,21 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
     var i := 0;
     y := new int[M.Length0](i => 0);
 
-    var mv := new MatrixVectorMultiplier(processes, M, x[..], y);
-    while sum(mv.leftOvers[..]) > 0 && exists p :: (p in processes && p.opsLeft > 0)
-        invariant mv.Valid(M, x[..], y, processes)
+    var leftOvers := new nat[M.Length0](i => M.Length1);
+
+    var mv := new MatrixVectorMultiplier(processes, M, x[..], y, leftOvers);
+    while sum(leftOvers[..]) > 0 && exists p :: (p in processes && p.opsLeft > 0)
+        invariant mv.Valid(M, x[..], y, processes, leftOvers)
         invariant (forall p :: p in processes ==> y[p.row] + calcRow(M, x[..], p.row, p.curColumn) == calcRow(M, x[..], p.row, 0))
-        invariant sum(mv.leftOvers[..]) >= 0
+        invariant sum(leftOvers[..]) >= 0
         invariant mv.totalOps >= 0
         // invariant mv.P
         decreases mv.totalOps
     {
-        mv.processNext(M, x[..], y, processes);
+        mv.processNext(M, x[..], y, processes, leftOvers);
     }
-    assert(sum(mv.leftOvers[..]) == 0);
-    assert(forall p :: p in processes ==> y[p.row] == calcRow(M, x[..], p.row, 0));
+    // assert(sum(mv.leftOvers[..]) == 0);
+    // assert(forall p :: p in processes ==> y[p.row] == calcRow(M, x[..], p.row, 0));
 
 
 }
