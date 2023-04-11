@@ -128,14 +128,7 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
     decreases *
 {
     var i := 0;
-    y := new int[M.Length0];
-    while i < y.Length
-        invariant 0 <= i <= y.Length
-        invariant forall j :: 0 <= j < i ==> y[j] == 0
-    {
-        y[i] := 0;
-        i := i + 1;
-    }
+    y := new int[M.Length0](i => 0);
 
     var mv := new MatrixVectorMultiplier(processes, M, x[..], y);
     while mv.totalOps > 0
