@@ -17,13 +17,40 @@ function sum(s : seq<nat>) : nat
 
 lemma sum0(s : seq<nat>)
   ensures sum(s) == 0 ==> forall i :: 0 <= i < |s| ==> s[i] == 0
+  
   {
     if s == [] {
-        assert(forall i :: 0 <= i < |s| ==> s[i] == 0);
     } else {
-        sum0(s[1..]);
+      sum0(s[1..]);
     }
   }
+
+lemma sum_const(s : seq<nat>, x : nat)
+  ensures (forall i :: 0 <= i < |s| ==> s[i] == x) ==> sum(s) == |s| * x 
+  {
+  }
+
+// lemma sum_exept(s1 : seq<nat>, s2 : seq<nat>, x : nat, j : nat)
+
+lemma sum_exept(s1 : seq<nat>, s2 : seq<nat>, x : nat, j : nat)
+requires |s1| == |s2|
+requires j < |s1|
+requires forall i :: 0 <= i < |s1| ==> i != j ==> s1[i] == s2[i]
+requires s1[j] == s2[j] + x
+ensures sum(s1) == sum(s2) + x
+// {
+// if s1 == [] {
+//     assert(j >= |s1|);
+// } else {
+//     if j == 0 {
+//         assert (sum(s1) == s1[0] + sum(s1[1..]));
+//         assert (sum(s2) == s2[0] + sum(s2[1..]));
+//         assert sum(s1[1..]) == sum(s2[1..]);
+//     } else {
+
+//     }
+// }
+// }
 
 
 function calcRow(M : array2<int>, x : seq<int>, row: nat, start_index: nat) : (product: int)
@@ -82,7 +109,7 @@ class MatrixVectorMultiplier
         (forall p :: p in P ==> y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)) &&
         (forall p :: p in P ==> leftOvers[p.row] == p.opsLeft) &&
         (forall p :: p in P ==> p.opsLeft == M.Length1 - p.curColumn) &&
-        // (sum(leftOvers[..]) == totalOps)
+        (sum(leftOvers[..]) == totalOps)
     }
 
     constructor (processes: set<Process>, M_: array2<int>, x_: seq<int>, y_: array<int>)
@@ -106,6 +133,9 @@ class MatrixVectorMultiplier
         requires |x_| == M_.Length1
         requires M_.Length0 > 0
         requires |x_| > 0
+        ensures (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == M_.Length1)
+        ensures totalOps ==  M_.Length0 * M_.Length1
+        // ensures (forall s :: (forall i :: 0 <= i < |s| ==> s[i] == M_.Length1) ==> sum(s) == |s| * M_.Length1)
         ensures Valid()
     {
         numRows := M_.Length0;
@@ -114,10 +144,15 @@ class MatrixVectorMultiplier
         x := x_;
         y := y_;
 
+        new;
         leftOvers := new nat[M_.Length0](i => M_.Length1);
-        // totalOps := M_.Length0 * M_.Length1;
+
+        assert (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == M_.Length1);
+        sum_const(leftOvers[..], M_.Length1);
+        totalOps := M_.Length0 * M_.Length1;
 
         finished_calc := {};
+        
     }
 
     method processNext(p: Process)
@@ -136,14 +171,17 @@ class MatrixVectorMultiplier
         ensures p.row == old(p.row)
         ensures p.row < y.Length
         // ensures totalOps == old(totalOps) - 1
-        ensures sum(leftOvers[..]) < sum(old(leftOvers[..]))
+        // ensures sum(leftOvers[..]) < sum(old(leftOvers[..]))
         ensures y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
     {
         y[p.row] := y[p.row] + M[p.row, p.curColumn] * x[p.curColumn];
         p.opsLeft := p.opsLeft - 1;
         p.curColumn := p.curColumn + 1;
         leftOvers[p.row] := leftOvers[p.row] - 1;
-        // totalOps := totalOps - 1;
+        assert (forall i :: 0 <= i < leftOvers.Length ==> i != p.row ==> leftOvers[i] == old(leftOvers[i]));
+        assert (leftOvers[p.row] + 1 == old(leftOvers[p.row]));
+        sum_exept(old(leftOvers[..]), leftOvers[..], 1, p.row);
+        totalOps := totalOps - 1;
     }
 
 }
