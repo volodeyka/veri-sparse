@@ -3,7 +3,11 @@ class Process {
     var curColumn: nat;
     var opsLeft: nat;
 
-    constructor (init_row: nat, initOpsLeft: nat) {
+    constructor (init_row: nat, initOpsLeft: nat) 
+        ensures row == init_row
+        ensures opsLeft == initOpsLeft
+        ensures curColumn == 0
+    {
         row := init_row;
         curColumn := 0;
         opsLeft := initOpsLeft;
@@ -185,6 +189,35 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
     assert(forall p :: p in processes ==> y[p.row] == calcRow(M, x[..], p.row, 0));
 
 
+}
+
+lemma diffRowMeansDiffProcess(p1: Process, p2: Process)
+    requires p1.row != p2.row
+    ensures p1 != p2
+{
+}
+
+method createSetProcesses(numRows: nat, numColumns: nat) returns (processes: set<Process>)
+    ensures |processes| == numRows
+    ensures (forall p, q :: p in processes && q in processes && p != q ==> p.row != q.row)
+    ensures (forall p, q :: p in processes && q in processes ==> p != q)
+    ensures (forall p :: p in processes ==> 0 <= p.row < numRows)
+
+    ensures (forall p :: p in processes ==> 0 == p.curColumn)
+    ensures (forall p :: p in processes ==> p.opsLeft == numColumns)
+{
+    processes := {};
+    var i := 0;
+    while i < numRows
+        invariant i == |processes|
+        invariant 0 <= i <= numRows
+        invariant (forall p, q :: p in processes && q in processes && p != q ==> p.row != q.row)
+        invariant (forall p, q :: p in processes && q in processes ==> p != q)
+    {
+        var process := new Process(i, numColumns);
+        processes := processes + {process};
+        i := i + 1;
+    }
 }
 
 method Main()
