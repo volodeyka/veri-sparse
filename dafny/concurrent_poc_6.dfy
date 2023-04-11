@@ -30,7 +30,13 @@ lemma sum_const(s : seq<nat>, x : nat)
   {
   }
 
-// lemma sum_exept(s1 : seq<nat>, s2 : seq<nat>, x : nat, j : nat)
+lemma sum_eq(s1 : seq<nat>, s2 : seq<nat>)
+  requires |s1| == |s2|
+  requires forall i :: 0 <= i < |s1| ==> s1[i] == s2[i]
+  ensures sum(s1) == sum(s2)
+  {
+
+  }
 
 lemma sum_exept(s1 : seq<nat>, s2 : seq<nat>, x : nat, j : nat)
 requires |s1| == |s2|
@@ -38,19 +44,20 @@ requires j < |s1|
 requires forall i :: 0 <= i < |s1| ==> i != j ==> s1[i] == s2[i]
 requires s1[j] == s2[j] + x
 ensures sum(s1) == sum(s2) + x
-// {
-// if s1 == [] {
-//     assert(j >= |s1|);
-// } else {
-//     if j == 0 {
-//         assert (sum(s1) == s1[0] + sum(s1[1..]));
-//         assert (sum(s2) == s2[0] + sum(s2[1..]));
-//         assert sum(s1[1..]) == sum(s2[1..]);
-//     } else {
-
-//     }
-// }
-// }
+{
+    if s1 == [] {
+        assert(j >= |s1|);
+    } else {
+        if j == 0 {
+            assert (sum(s1) == s1[0] + sum(s1[1..]));
+            assert (sum(s2) == s2[0] + sum(s2[1..]));
+            sum_eq(s1[1..], s2[1..]);
+            assert sum(s1[1..]) == sum(s2[1..]);
+        } else {
+            sum_exept(s1[1..], s2[1..], x, j - 1);
+        }
+    }
+}
 
 
 function calcRow(M : array2<int>, x : seq<int>, row: nat, start_index: nat) : (product: int)
