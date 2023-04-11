@@ -72,7 +72,7 @@ class MatrixVectorMultiplier
         M.Length1 == |x| &&
         numRows == y.Length &&
         |P| == numRows &&
-        0 <= totalOps <= M.Length0 * M.Length1 &&
+        // 0 <= totalOps <= M.Length0 * M.Length1 &&
         |P| == leftOvers.Length &&
 
         (forall p, q :: p in P && q in P && p != q ==> p.row !=  q.row) &&
@@ -82,7 +82,7 @@ class MatrixVectorMultiplier
         (forall p :: p in P ==> y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)) &&
         (forall p :: p in P ==> leftOvers[p.row] == p.opsLeft) &&
         (forall p :: p in P ==> p.opsLeft == M.Length1 - p.curColumn) &&
-        (sum(leftOvers[..]) == totalOps)
+        // (sum(leftOvers[..]) == totalOps)
     }
 
     constructor (processes: set<Process>, M_: array2<int>, x_: seq<int>, y_: array<int>)
@@ -115,7 +115,7 @@ class MatrixVectorMultiplier
         y := y_;
 
         leftOvers := new nat[M_.Length0](i => M_.Length1);
-        totalOps := M_.Length0 * M_.Length1;
+        // totalOps := M_.Length0 * M_.Length1;
 
         finished_calc := {};
     }
@@ -126,7 +126,7 @@ class MatrixVectorMultiplier
         requires p.opsLeft > 0
         requires p.curColumn < M.Length1
         requires sum(leftOvers[..]) > 0
-        requires totalOps > 0
+        // requires totalOps > 0
         requires y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
         modifies this, y, p, P, leftOvers
         ensures Valid()
@@ -135,7 +135,7 @@ class MatrixVectorMultiplier
         ensures p.curColumn <= M.Length1
         ensures p.row == old(p.row)
         ensures p.row < y.Length
-        ensures totalOps == old(totalOps) - 1
+        // ensures totalOps == old(totalOps) - 1
         ensures sum(leftOvers[..]) < sum(old(leftOvers[..]))
         ensures y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
     {
@@ -143,7 +143,7 @@ class MatrixVectorMultiplier
         p.opsLeft := p.opsLeft - 1;
         p.curColumn := p.curColumn + 1;
         leftOvers[p.row] := leftOvers[p.row] - 1;
-        totalOps := totalOps - 1;
+        // totalOps := totalOps - 1;
     }
 
 }
@@ -172,7 +172,7 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
         var p :| p in mv.P && p.opsLeft > 0;
         mv.processNext(p);
     }
-    assert(mv.totalOps == 0);
+    assert(sum(mv.leftOvers[..]) == 0);
     // assert(forall p :: p in P ==> y[p.row] == calcRow(M, x, p.row, 0));
 
 
