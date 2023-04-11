@@ -77,9 +77,11 @@ class MatrixVectorMultiplier
 {
     var P: set<Process>
 
-    var M: array2<int>
-    var x: seq<int>
-    var y: array<int>
+    // var M: array2<int>
+    // var x: seq<int>
+    // var y: array<int>
+    // ghost var len0 : nat
+    // ghost var len1 : nat
 
     var totalOps: nat
 
@@ -88,7 +90,7 @@ class MatrixVectorMultiplier
     var leftOvers : array<nat>
     
 
-    ghost predicate Valid 
+    ghost predicate Valid(M: array2<int>, x: seq<int>, y: array<int>)
         reads this, y, P, M, leftOvers
     {
         M.Length0 == y.Length &&
@@ -132,13 +134,13 @@ class MatrixVectorMultiplier
         ensures (forall i :: 0 <= i < leftOvers.Length ==> leftOvers[i] == M_.Length1)
         ensures totalOps ==  M_.Length0 * M_.Length1
         // ensures (forall s :: (forall i :: 0 <= i < |s| ==> s[i] == M_.Length1) ==> sum(s) == |s| * M_.Length1)
-        ensures Valid()
+        ensures Valid(M_, x_, y_)
     {
         numRows := M_.Length0;
         P := processes;
-        M := M_;
-        x := x_;
-        y := y_;
+        // M := M_;
+        // x := x_;
+        // y := y_;
 
         new;
         leftOvers := new nat[M_.Length0](i => M_.Length1);
@@ -149,25 +151,26 @@ class MatrixVectorMultiplier
         
     }
 
-    method processNext(p: Process)
-        requires Valid()
-        requires p in P
-        requires p.opsLeft > 0
-        requires p.curColumn < M.Length1
+    method processNext(M: array2<int>, x: seq<int>, y: array<int>)
+        requires Valid(M, x, y)
+        // requires p in P
+        // requires p.opsLeft > 0
+        // requires p.curColumn < M.Length1
         requires sum(leftOvers[..]) > 0
         requires totalOps > 0
-        requires y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
-        modifies this, y, p, P, leftOvers
-        ensures Valid()
-        ensures p.opsLeft == old(p.opsLeft) - 1
-        ensures p.curColumn == old(p.curColumn) + 1
-        ensures p.curColumn <= M.Length1
-        ensures p.row == old(p.row)
-        ensures p.row < y.Length
+        // requires y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
+        modifies this, y, `P
+        ensures Valid(M, x, y)
+        // ensures p.opsLeft == old(p.opsLeft) - 1
+        // ensures p.curColumn == old(p.curColumn) + 1
+        // ensures p.curColumn <= M.Length1
+        // ensures p.row == old(p.row)
+        // ensures p.row < y.Length
         ensures totalOps == old(totalOps) - 1
         // ensures sum(leftOvers[..]) < sum(old(leftOvers[..]))
-        ensures y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
+        // ensures y[p.row] + calcRow(M, x, p.row, p.curColumn) == calcRow(M, x, p.row, 0)
     {
+        var p :| p in P && p.opsLeft > 0;
         y[p.row] := y[p.row] + M[p.row, p.curColumn] * x[p.curColumn];
         p.opsLeft := p.opsLeft - 1;
         p.curColumn := p.curColumn + 1;
@@ -199,14 +202,14 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
 
     var mv := new MatrixVectorMultiplier(processes, M, x[..], y);
     while sum(mv.leftOvers[..]) > 0 && exists p :: (p in mv.P && p.opsLeft > 0)
-        invariant mv.Valid()
-        invariant (forall p :: p in mv.P ==> mv.y[p.row] + calcRow(mv.M, mv.x[..], p.row, p.curColumn) == calcRow(mv.M, mv.x[..], p.row, 0))
+        invariant mv.Valid(M, x[..], y)
+        invariant (forall p :: p in mv.P ==> y[p.row] + calcRow(M, x[..], p.row, p.curColumn) == calcRow(M, x[..], p.row, 0))
         invariant sum(mv.leftOvers[..]) >= 0
         invariant mv.totalOps >= 0
+        // invariant mv.P
         decreases mv.totalOps
     {
-        var p :| p in mv.P && p.opsLeft > 0;
-        mv.processNext(p);
+        mv.processNext(M, x[..], y);
     }
     assert(sum(mv.leftOvers[..]) == 0);
     assert(forall p :: p in mv.P ==> y[p.row] == calcRow(M, x[..], p.row, 0));
