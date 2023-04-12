@@ -186,72 +186,86 @@ method Run(processes: set<Process>, M: array2<int>, x: array<int>) returns (y: a
         mv.processNext(M, x[..], y, processes, leftOvers);
     }
     assert(sum(leftOvers[..]) == 0);
-    assert(forall p :: p in processes ==> y[p.row] == calcRow(M, x[..], p.row, 0));
+    assert(forall i :: 0 <= i < y.Length ==> y[i] == calcRow(M, x[..], i, 0));
 
 
 }
 
-lemma diffRowMeansDiffProcess(p1: Process, p2: Process)
-    requires p1.row != p2.row
-    ensures p1 != p2
-{
-}
 
-method createSetProcesses(numRows: nat, numColumns: nat) returns (processes: set<Process>)
-    ensures |processes| == numRows
-    ensures (forall p, q :: p in processes && q in processes && p != q ==> p.row != q.row)
-    ensures (forall p, q :: p in processes && q in processes ==> p != q)
-    ensures (forall p :: p in processes ==> 0 <= p.row < numRows)
+// lemma lemma_newProcessNotInSet(process: Process, processes: set<Process>)
+//     requires (forall p :: p in processes ==> p.row != process.row)
+//     ensures process !in processes
+// {
+// }
 
-    ensures (forall p :: p in processes ==> 0 == p.curColumn)
-    ensures (forall p :: p in processes ==> p.opsLeft == numColumns)
-{
-    processes := {};
-    var i := 0;
-    while i < numRows
-        invariant i == |processes|
-        invariant 0 <= i <= numRows
-        invariant (forall p, q :: p in processes && q in processes && p != q ==> p.row != q.row)
-        invariant (forall p, q :: p in processes && q in processes ==> p != q)
-    {
-        var process := new Process(i, numColumns);
-        processes := processes + {process};
-        i := i + 1;
-    }
-}
+// lemma diffRowMeansDiffProcess(p1: Process, p2: Process)
+//     requires p1.row != p2.row
+//     ensures p1 != p2
+// {
+// }
 
-method Main()
-{
-    var M: array2<int> := new int[3, 3];
 
-    M[0,0] := 1;
-    M[0,1] := 2;
-    M[0,2] := 3;
+// method createSetProcesses(numRows: nat, numColumns: nat) returns (processes: set<Process>)
+//     ensures |processes| == numRows
+//     ensures (forall p, q :: p in processes && q in processes ==> p != q)
+//     ensures (forall p, q :: p in processes && q in processes && p != q ==> p.row != q.row)
+//     ensures (forall p :: p in processes ==> 0 <= p.row < numRows)
+//     ensures (forall p :: p in processes ==> 0 == p.curColumn)
+//     ensures (forall p :: p in processes ==> p.opsLeft == numColumns)
+// {
+//     processes := {};
+//     assert (forall p, q :: p in processes && q in processes ==> p != q);
+//     assert (forall p, q :: p in processes && q in processes && p != q ==> p.row != q.row);
+//     var i := 0;
+//     while i < numRows
+//         invariant i == |processes|
+//         invariant 0 <= i <= numRows
+//         invariant (forall p, q :: p in processes && q in processes && p != q ==> p.row != q.row)
+//         invariant (forall p, q :: p in processes && q in processes ==> p != q)
+//     {
+//         var process := new Process(i, numColumns);
+//         processes := processes + {process};
+//         i := i + 1;
+//     }
+// }
 
-    M[1,0] := 1;
-    M[1,1] := 2;
-    M[1,2] := 3;
+// method Main()
+// {
+//     var M: array2<int> := new int[3, 3];
 
-    M[2,0] := 1;
-    M[2,1] := 20;
-    M[2,2] := 3;
+//     M[0,0] := 1;
+//     M[0,1] := 2;
+//     M[0,2] := 3;
 
-    var x := new int[3];
-    x[0] := 1;
-    x[1] := -3;
-    x[2] := 3;
+//     M[1,0] := 1;
+//     M[1,1] := 2;
+//     M[1,2] := 3;
 
-    var p0: Process := new Process(0, 3);
-    var p1: Process := new Process(1, 3);
-    var p2: Process := new Process(2, 3);
-    var processes := {p0, p1, p2};
+//     M[2,0] := 1;
+//     M[2,1] := 20;
+//     M[2,2] := 3;
 
-    assert (forall p, q :: p in processes && q in processes && p != q ==> p.row != q.row);
-    assert (forall p, q :: p in processes && q in processes ==> p != q);
+//     var x := new int[3];
+//     x[0] := 1;
+//     x[1] := -3;
+//     x[2] := 3;
 
-    var y := Run(processes, M, x);
+//     var p0: Process := new Process(0, 3);
+//     var p1: Process := new Process(1, 3);
+//     var p2: Process := new Process(2, 3);
+//     var processes := {p0, p1, p2};
 
-    for i := 0 to 3 {
-        print "output: ", y[i], "\n";
-    }
-}
+//     assert (p0 != p1 && p1 != p2 && p0 != p2);
+//     assert (forall p :: p in processes ==> p == p0 || p == p1 || p == p2);
+//     assert (exists p :: p in processes && p == p0);
+//     assert (exists p :: p in processes && p == p1);
+//     assert (exists p :: p in processes && p == p2);
+//     assert (forall p, q :: p in processes && q in processes ==> p.row != q.row);
+//     assert (forall p, q :: p in processes && q in processes ==> p != q);
+
+//     var y := Run(processes, M, x);
+
+//     for i := 0 to 3 {
+//         print "output: ", y[i], "\n";
+//     }
+// }
