@@ -26,23 +26,20 @@ function min(x : nat, y : nat) : nat {
 }
 
 method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
-              v_val : array<int>, v_crd : array<nat>, v_pos : array<nat>) returns (y : array<int>)
+              v_val : array<int>, v_crd : array<nat>) returns (y : array<int>)
   // X requirments 
   requires X_pos.Length >= 1
   requires X_val.Length == X_crd.Length
   requires forall i, j :: 0 <= i < j < X_pos.Length ==> X_pos[i] <= X_pos[j];
   requires forall i :: 0 <= i < X_pos.Length ==> 0 <= X_pos[i] <= X_val.Length
 
-  // v requirments 
-  requires v_pos.Length == 2
+  // v requirments
   requires v_val.Length == v_crd.Length
-  requires forall i, j :: 0 <= i < j < v_pos.Length ==> v_pos[i] < v_pos[j];
-  requires forall i :: 0 <= i < 2            ==> 0 <= v_pos[i] <= v_val.Length
 
   ensures y.Length + 1 == X_pos.Length
   ensures 
     forall i :: 0 <= i < y.Length ==>
-      y[i] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], v_pos[0], X_pos[i+1], v_pos[1])
+      y[i] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], 0, X_pos[i+1], v_crd.Length)
   {
     var N : nat := X_pos.Length - 1;
     y := new int[N](i => 0);
@@ -55,20 +52,20 @@ method SpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
 
     while n < N
       invariant n <= y.Length
-      invariant forall i :: 0 <= i < n ==> y[i] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], v_pos[0], X_pos[i+1], v_pos[1])
+      invariant forall i :: 0 <= i < n ==> y[i] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], 0, X_pos[i+1], v_val.Length)
       invariant forall i :: n <= i < y.Length ==> y[i] == 0
       { 
         kX     := X_pos[n];
         pX_end := X_pos[n + 1];
-        kV     := v_pos[0];
-        pV_end := v_pos[1];
+        kV     := 0;
+        pV_end := v_crd.Length;
 
         while (kX < pX_end && kV < pV_end) 
         invariant X_pos[n] <= kX <= pX_end
-        invariant v_pos[0] <= kV <= pV_end
+        invariant 0 <= kV <= pV_end
         invariant forall i :: n < i < y.Length ==> y[i] == 0
-        invariant forall i :: 0 <= i < n ==> y[i] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], v_pos[0], X_pos[i+1], v_pos[1])
-        invariant y[n] + sum(X_val, X_crd, v_val, v_crd, kX, kV, pX_end, pV_end) == sum(X_val, X_crd, v_val, v_crd, X_pos[n], v_pos[0], pX_end, pV_end)
+        invariant forall i :: 0 <= i < n ==> y[i] == sum(X_val, X_crd, v_val, v_crd, X_pos[i], 0, X_pos[i+1], pV_end)
+        invariant y[n] + sum(X_val, X_crd, v_val, v_crd, kX, kV, pX_end, pV_end) == sum(X_val, X_crd, v_val, v_crd, X_pos[n], 0, pX_end, pV_end)
         decreases pX_end + pV_end - (kX + kV)
           {
             kX0 := X_crd[kX];
@@ -108,15 +105,13 @@ method Main() {
 
   var v_val := new int[4](i => 30 + i);
   var v_crd := new nat[4](i => i * 2);
-  var v_pos := new nat[2](i => if i == 0 then 0 else 4);
 
   var y := SpMSpV(
     X_val,
     X_crd,
     X_pos,
     v_val,
-    v_crd,
-    v_pos
+    v_crd
   );
 
   var i := 0;
