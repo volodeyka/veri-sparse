@@ -57,22 +57,19 @@ function index(x : nat, y: array<nat>) : (i : nat)
 method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
                                   X_crd1 : array<nat>, X_len: nat,
               v_val : array<int>, v_crd : array<nat>) returns (y : array<int>)
-  // X requirments 
+  // X requirements 
   requires X_pos.Length >= 1
   requires X_val.Length == X_crd.Length
   requires forall i, j :: 0 <= i < j < X_pos.Length ==> X_pos[i] <= X_pos[j];
   requires forall i :: 0 <= i < X_pos.Length ==> 0 <= X_pos[i] <= X_val.Length
 
-  // requires X_pos1.Length == 2
-  // requires X_pos1[0] == 0
-  // requires X_pos1[1] >= X_crd1.Length
   requires X_len >= X_crd1.Length
   requires forall i :: 0 <= i < X_crd1.Length ==> X_crd1[i] < X_len
 
   requires X_crd1.Length < X_pos.Length
   requires forall i, j :: 0 <= i < j < X_crd1.Length ==> X_crd1[i] < X_crd1[j]
 
-  // v requirments 
+  // v requirements 
   requires v_val.Length == v_crd.Length
 
   ensures y.Length == X_len
@@ -92,8 +89,7 @@ method DSpMSpV(X_val : array<int>, X_crd : array<nat>, X_pos : array<nat>,
     var kX0, kV0    : nat;
     var k : nat;
     var pX_end1 := X_crd1.Length;
-
-
+    
 
     while n < pX_end1
       invariant n <= X_crd1.Length
