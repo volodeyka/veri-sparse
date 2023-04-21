@@ -4,8 +4,6 @@ function sum(X_val: array<int>, X_crd: array<nat>, v : array<int>, b : int, k : 
   requires k <= X_val.Length
   requires X_val.Length == X_crd.Length
   requires forall i :: 0 <= i < X_crd.Length ==> 0 <= X_crd[i] < v.Length
-  ensures k <= b ==> s == 0
-  ensures b < k ==> s ==  sum(X_val, X_crd, v, b + 1, k) + X_val[b] * v[X_crd[b]]
   decreases k - b
   {
     if k <= b then 
