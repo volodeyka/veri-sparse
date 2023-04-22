@@ -2,7 +2,6 @@ From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
 From mathcomp Require Import tuple finfun finset path fintype tuple.
 From mathcomp Require Import zify fintype choice eqtype bigop matrix order.
 From pcm Require Import ordtype.
-Σᵢ₌₀
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
