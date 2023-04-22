@@ -34,7 +34,14 @@ DSpMSpV:
 
 ## Compiling and Running Coq Proof
 
-To compile the Coq proof for each algorithm, run the following commands:
+Fist of all you will have to install `opam`, and then, install dependencies as follows:
+
+```
+opam switch create verisparse ocaml-base-compiler.4.11.1
+opam install coq.8.16.1 coq-equations coq-mathcomp-ssreflect coq-mathcomp-zify coq-fcsl-pcm coq-mathcomp-algebra
+```
+
+Each Coq file is independent. To compile the Coq proof for each algorithm, run the following commands:
 
 SpMV:
 `coqc coq/spmv.v`
@@ -44,7 +51,3 @@ SpMSpV:
 
 DSpMSpV:
 `coqc coq/dspmspv.v`
-
-This will generate a new file for each proof - for SpMV, it will create `spmv.vo`, for SpMSpV, `spmspv.vo`, and for DSpMSpV, `dspmspv.vo`.
-
-To run these programs, you will need to start the Coq interpreter by running the `coqtop` command in your terminal.
